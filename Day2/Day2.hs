@@ -37,10 +37,23 @@ gamePossibleWith :: (Int, Int, Int) -> Game -> Bool
 gamePossibleWith (r, g, b) (Game _ ds) = all drawPossible ds
     where drawPossible (dr, dg, db) = dr <= r && dg <= g && db <=b
 
+minCubes :: Game -> (Int, Int, Int)
+minCubes (Game _ draws) = (mr, mg, mb)
+    where mr = maximum $ map r draws
+          mg = maximum $ map g draws
+          mb = maximum $ map b draws
+          r (v, _, _) = v
+          g (_, v, _) = v
+          b (_, _, v) = v
+
+power :: (Int, Int, Int) -> Int
+power (r, g, b) = r*g*b
+
 main :: IO ()
 main = do
     input <- readFile "input.txt"
     let iLines = filter (not . null) $ lines input
         games = map (readGame . pack) iLines
-    print $ sum $ map gId $ filter (gamePossibleWith (12, 13, 14)) games
+    --print $ sum $ map gId $ filter (gamePossibleWith (12, 13, 14)) games
+    print $ sum $ map (power . minCubes) games
 
