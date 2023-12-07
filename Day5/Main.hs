@@ -2,7 +2,7 @@ module Main (main) where
 
 import Control.Monad (void)
 import Data.Either (fromRight)
-import Data.List (sort)
+import Data.List (sortBy)
 import Text.Parsec
 
 import Debug.Trace (trace, traceShow)
@@ -17,13 +17,17 @@ data AlmanacMapEntry =
     AlmanacMapEntry DestinationRangeStart SourceRangeStart RangeLength
     deriving (Show, Eq)
 
--- Sort first by source range, then by dest range and length
-instance Ord AlmanacMapEntry where
-    compare (AlmanacMapEntry drsA srsA rlA) 
+compareBySource :: AlmanacMapEntry -> AlmanacMapEntry -> Ordering
+compareBySource (AlmanacMapEntry drsA srsA rlA) 
             (AlmanacMapEntry drsB srsB rlB) = 
                 compare (srsA, drsA, rlA)
                         (srsB, drsB, rlB)
     
+compareByDest :: AlmanacMapEntry -> AlmanacMapEntry -> Ordering
+compareByDest (AlmanacMapEntry drsA srsA rlA) 
+            (AlmanacMapEntry drsB srsB rlB) = 
+                compare (drsA, srsA, rlA)
+                        (drsB, srsB, rlB)
 
 type AlmanacMap = [AlmanacMapEntry]
 
@@ -66,7 +70,7 @@ almanacMap = do
     _ <- string " map:"
     _ <- newline
 
-    sort <$> manyTill almanacMapEntry (try $ try (void newline) <|> eof)
+    sortBy compareBySource <$> manyTill almanacMapEntry (try $ try (void newline) <|> eof)
 
 almanacParser :: Parsec String () Almanac
 almanacParser = do
@@ -84,17 +88,22 @@ lookupAlm ((AlmanacMapEntry dst src range):es) i
   | otherwise = lookupAlm es i
 lookupAlm [] i = i
 
-t :: Int -> AlmanacMap -> Int
-t x = traceShow'' "  " . (`lookupAlm` x)
-
 seedToLocation :: [AlmanacMap] -> Int -> Int
-seedToLocation ms i = foldl t i ms
+seedToLocation ms i = foldl (flip lookupAlm) i ms
 
 part1Sol :: Almanac -> Int
-part1Sol (Almanac seeds maps) = minimum $ map (traceShow' . seedToLocation maps) seeds
+part1Sol (Almanac seeds maps) = minimum $ map (seedToLocation maps) seeds
+
+seedToSeeds :: [Int] -> [Int]
+seedToSeeds (start:range:is) = take range [start..] ++ seedToSeeds is
+seedToSeeds [_] = error "Odd number of seeds!"
+seedToSeeds [] = []
+
+part2Sol :: Almanac -> Int
+part2Sol (Almanac seeds maps) = minimum $ map (seedToLocation maps) (seedToSeeds seeds)
 
 main :: IO ()
 main = do
     input <- readFile "input.txt"
     let alm = fromRight (error "Could not parse") $ parse almanacParser "" input
-    print $ part1Sol alm
+    print $ part2Sol alm
