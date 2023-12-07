@@ -29,17 +29,14 @@ numsWithCoords = numsWithCoords' 1
     where numsWithCoords' _ [] = []
           numsWithCoords' y (row:rows) = rowCoords row ++ numsWithCoords' (y+1) rows
             where rowCoords = reverse . accum [] [] . zip [1..]
-                  toNC xAcc numAcc = (xs, y, num)
+                  accum :: [Int] -> [Char] -> [(Int, Char)] -> [([Int], Int, Int)]
+                  accum xAcc numAcc xcs
+                      | (x, c):xcs' <- xcs, isDigit c = accum (x:xAcc) (c:numAcc) xcs'
+                      | (not . null) numAcc = (xs, y, num):accum [] [] xcs
+                      | [] <- xcs = []
+                      | otherwise = accum [] [] $ tail xcs
                       where num = read $ reverse numAcc :: Int
                             xs = reverse xAcc
-                  accum :: [Int] -> [Char] -> [(Int, Char)] -> [([Int], Int, Int)]
-                  accum xAcc numAcc ((x, c):xcs)
-                      | isDigit c = accum (x:xAcc) (c:numAcc) xcs
-                      | (not . null) numAcc = toNC xAcc numAcc:accum [] [] xcs
-                      | otherwise = accum [] [] xcs
-                  accum xAcc numAcc []
-                      | (not . null) numAcc = [toNC xAcc numAcc]
-                      | otherwise = []
 
 type NumId = Int
 numsMap :: [NumWithCoords] -> Map (Int, Int) (NumId, Int)
@@ -59,7 +56,7 @@ findNums :: [([Int], Int, Int)] -> Set (Int, Int) -> [Int]
 findNums ncs symCoords = map thrdOf3 $ filter nearSymbol ncs
     where nearSymbol (xs, y, n) = (not . null) 
                                 $ Set.intersection symCoords 
-                                $ Set.fromList $ [ (x', y') | y'<-[y-1..y+1], x' <- [head xs-1..last xs+1] ]
+                                $ Set.fromList [ (x', y') | y'<-[y-1..y+1], x' <- [head xs-1..last xs+1] ]
 
 part1Sol :: [[Char]] -> Int
 part1Sol = sum . uncurry findNums . (numsWithCoords &&& coordsMatching isSymbol)
