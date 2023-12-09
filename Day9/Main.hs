@@ -27,9 +27,8 @@ extrap' ns
 main :: IO ()
 main = do
     input <- readFile "input.txt"
-    let sequences = case parse inputP "" input of
-                      Left e -> error $ show e
-                      Right v -> v
+    let sequences = either (error . show) id $
+                        parse inputP "" input
 
     print $ sum $ map extrap sequences
     print $ sum $ map extrap' sequences
