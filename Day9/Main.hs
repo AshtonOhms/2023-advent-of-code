@@ -20,8 +20,8 @@ extrap f ns
 main :: IO ()
 main = do
     input <- readFile "input.txt"
-    let sequences = either (error . show) id $
-                        parse inputP "" input
-        solutions = sum . flip map sequences . extrap 
+    let sequences = either (error . show) id 
+                  $ parse inputP "" input
+        solutions = sum . (<$> sequences) . extrap 
                 <$> [ (+) . last, (-) . head ]
     mapM_ print solutions
