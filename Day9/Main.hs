@@ -1,13 +1,14 @@
 module Main (main) where
 
 import Text.Parsec
+import Data.Functor (($>))
+import Control.Applicative (liftA2)
 
 inputP :: Parsec String () [[Int]]
 inputP = manyTill ((num `sepBy1` char ' ')<*newline) eof
-    where num = do
-            neg <- optionMaybe $ char '-'
-            n <- many1 digit
-            pure $ maybe 1 (const (-1)) neg * read n
+    where num = liftA2 (*)
+                   (option 1 (char '-'$>(-1)))
+                   (read <$> many1 digit)
 
 diffs :: [Int] -> [Int]
 diffs (a:b:ns) = b-a:diffs (b:ns)
@@ -29,6 +30,5 @@ main = do
     input <- readFile "input.txt"
     let sequences = either (error . show) id $
                         parse inputP "" input
-
-    print $ sum $ map extrap sequences
-    print $ sum $ map extrap' sequences
+        solutions = sum . flip map sequences <$> [extrap, extrap'] 
+    mapM_ print solutions
