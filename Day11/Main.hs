@@ -13,6 +13,19 @@ pairs :: [a] -> [(a, a)]
 pairs (a:as) = map (a,) as ++ pairs as
 pairs [] = []
 
+coord :: Int -> [[Char]] -> [Int]
+coord idx (row:rows) = let idx' = if all (=='.') row
+                                     then idx + 1000000
+                                     else idx + 1
+                          in idx':coord idx' rows
+coord _ [] = []
+
+expand'' :: [[Char]] -> [(Int, Int)]
+expand'' m = snd <$> filter ((=='#') . fst) (zip (concat m) [(rowI, colI) | rowI <- rowCs, colI <- colCs ])
+    where rowCs = coord 1 m
+          colCs = coord 1 $ transpose m
+          
+
 expand :: [[Char]] -> [[Char]]
 expand (row:rows) = if all (=='.') row
                      then row:row:expand rows
@@ -31,4 +44,5 @@ main = do
 
         galaxies = fst <$> filter ((=='#') . snd) (Mat.toList (Mat.mapPos (,) m))
 
-    print $ sum $ map (uncurry dist) (pairs galaxies)
+    --print $ sum $ map (uncurry dist) (pairs galaxies)
+    print $ sum $ map (uncurry dist) (pairs (expand'' (lines input)))
