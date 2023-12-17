@@ -13,16 +13,25 @@ inputP = many1 $ many1 row<*try end
           row = many1 (oneOf ".#")<*newline
 
 findReflect :: [[Char]] -> Maybe Int
+findReflect [] = error "empty pattern"
 findReflect (r:rs) = findReflect' [r] rs
     where findReflect' acc (c:cs)
-            | startEq acc (c:cs) = Just $ length acc
+            | startEq 0 acc (c:cs) = Just $ length acc
             | otherwise = traceShow (acc, c:cs) findReflect' (c:acc) cs
           findReflect' _ _ = Nothing
-          startEq (a:as) (b:bs)
-            | a /= b = False
-            | a == b = startEq as bs
-          startEq [a] [b] = a == b
-          startEq _ _ = True
+
+          startEq c (a:as) (b:bs)
+            | c > 1 = False
+            | notEqCount a b > 1 = False
+            | i <- notEqCount a b = startEq (c+i) as bs
+          startEq c _ _ = c == 1
+
+          notEqCount (a:as) (b:bs)
+            | a == b = notEqCount as bs
+            | a /= b = 1 + notEqCount as bs
+          notEqCount [] [] = 0 
+          notEqCount _ _ = error "unexpected unequally sized lists"
+            
 
 findReflects :: [[Char]] -> Either Int Int
 findReflects p
