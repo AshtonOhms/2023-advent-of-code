@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
+
 module Main (main) where
 
 import Control.Monad.State
@@ -35,21 +38,29 @@ beamStep loc c dir
             | dir' `elem` [N, S] = [E, W]
           spl _ _ = error "unknown char"
 
-beamLocs :: Matrix Char -> (Int, Int) -> Dir -> State (Set ((Int, Int), Dir)) (Set (Int, Int))
-beamLocs m loc@(row, col) dir = do
-        let inBounds = row > 0 && row <= nrows m
-                      && col > 0 && col <= ncols m
-        seen <- get
-        if (loc, dir) `elem` seen || not inBounds
-           then pure Set.empty
-           else do
-               put $ (loc, dir) `Set.insert` seen
-               l <- mapM (uncurry $ beamLocs m) $ beamStep loc (m ! loc) dir
-               pure $ foldl' Set.union (Set.singleton loc) l
+beamLocs :: Matrix Char -> (Int, Int) -> Dir -> Set (Int, Int)
+beamLocs m l d = (Set.map fst . flip execState Set.empty) $ beamLocs' l d
+    where beamLocs' loc@(row, col) dir = do
+            let inBounds = row > 0 && row <= nrows m
+                          && col > 0 && col <= ncols m
+            seen <- get
+            if (loc, dir) `elem` seen || not inBounds
+               then pure Set.empty
+               else do
+                   put $ (loc, dir) `Set.insert` seen
+                   l <- mapM (uncurry beamLocs') $ beamStep loc (m ! loc) dir
+                   pure $ foldl' Set.union (Set.singleton loc) l
+
+edgeStarts :: Matrix Char -> Dir -> [((Int, Int), Dir)]
+edgeStarts m N = (,S) . (1,) <$> [1..ncols m]
+edgeStarts m S = (,N) . (nrows m,) <$> [1..ncols m]
+edgeStarts m W = (,E) . (,1) <$> [1..nrows m]
+edgeStarts m E = (,W) . (,ncols m) <$> [1..nrows m]
 
 main :: IO ()
 main = do
     input <- fromLists . lines <$> readFile "input.txt"
-    let locs = Set.map fst $ execState (beamLocs input (1,1) E) Set.empty
+    let starts = concatMap (edgeStarts input) [N,E,S,W]
+        locs = maximum $ map (length . uncurry (beamLocs input)) starts
 
-    print $ length locs
+    print $ locs 
