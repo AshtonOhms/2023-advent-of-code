@@ -5,16 +5,14 @@ import Data.List
 import Data.List.Split
 import qualified Data.Set.Ordered as OSet
 
-compareRock :: Bool -> Char -> Char -> Ordering
-compareRock False 'O' '.' = LT
-compareRock False '.' 'O' = GT
-compareRock True 'O' '.' = LT
-compareRock True '.' 'O' = GT
-compareRock _ a b = compare a b
+compareRock :: Char -> Char -> Ordering
+compareRock 'O' '.' = LT
+compareRock '.' 'O' = GT
+compareRock a b = compare a b
 
-slideCol :: Bool -> [Char] -> [Char]
-slideCol r cs = intercalate "#" 
-              $ map (sortBy $ compareRock r) 
+slideCol :: [Char] -> [Char]
+slideCol cs = intercalate "#" 
+              $ map (sortBy compareRock) 
               $ splitOn "#" cs
 
 scoreCol :: [Char] -> Int
@@ -23,10 +21,10 @@ scoreCol = sum . zipWith (\s c -> if c=='O' then s else 0) [1..] . reverse
 data Dir = N | W | S | E deriving (Show, Eq, Ord)
 
 slide :: Dir -> [[Char]] -> [[Char]]
-slide W = map (slideCol False)
-slide E = map (reverse . slideCol False . reverse)
-slide N = transpose . map (slideCol False) . transpose
-slide S = transpose . map (reverse . slideCol False . reverse) . transpose
+slide W = map slideCol 
+slide E = map (reverse . slideCol . reverse)
+slide N = transpose . map slideCol . transpose
+slide S = transpose . map (reverse . slideCol . reverse) . transpose
 
 load :: [[Char]] -> Int
 load = sum . map scoreCol . transpose
